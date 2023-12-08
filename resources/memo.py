@@ -55,7 +55,7 @@ class MemoListResource(Resource) :
                     from memo
                     where userId = %s
                     order by date
-                    limit 0, 25;'''
+                    limit '''+ str(offset) +''' , '''+ str(limit) +''' ;'''
             
             record = (user_id, )
 
@@ -84,5 +84,66 @@ class MemoListResource(Resource) :
                 'items' : result_list,
                 'count' : len(result_list)}
 
+
+class MemoResource(Resource) :
+
+    @jwt_required()
+    def put(self, memo_id) :
+
+        data = request.get_json()
+
+        user_id = get_jwt_identity()
+
+        try :
+            connetion = get_connection()
+            query = '''update memo
+                    set title = %s ,
+                        date = %s ,
+                        content = %s
+                    where id = %s and userId = %s;'''
+            record = (data['title'],
+                      data['date'],
+                      data['content'],
+                      memo_id, 
+                      user_id)
+            
+            cursor = connetion.cursor()
+            cursor.execute(query, record)           
+            connetion.commit()
+
+            cursor.close()
+            connetion.close()
+
+        except Error as e:
+            print(e)
+            cursor.close()
+            connetion.close()
+            return {'error' : str(e)}, 500
+                
+        return {'result' : 'success'}
+
+    @jwt_required()
+    def delete(self, memo_id) :
+
+        user_id = get_jwt_identity()
+
+        try :
+            connection = get_connection()
+            query = '''delete from memo
+                    where id = %s and userId = %s'''
+            record = (memo_id, user_id)
+            cursor = connection.cursor()
+            cursor.execute(query, record)
+            connection.commit()
+            cursor.close()
+            connection.close()
+
+        except Error as e:
+            print(e)
+            cursor.close()
+            connection.close()
+            return {'error' : str(e)}, 500
+
+        return {'result' : 'success'}
 
 
