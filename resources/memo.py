@@ -38,11 +38,51 @@ class MemoListResource(Resource) :
         return {'result' : 'success'}, 200
     
 
-
-
-
+    @jwt_required()
     def get(self) :
-        return
+
+        user_id = get_jwt_identity()
+
+        # 쿼리스트링 (쿼리 파라미터)를 통해서
+        # 데이터를 받아온다.
+        offset = request.args.get('offset')
+        limit = request.args.get('limit')
+
+        try : 
+            connection = get_connection()
+
+            query = '''select id, title, date, content
+                    from memo
+                    where userId = %s
+                    order by date
+                    limit 0, 25;'''
+            
+            record = (user_id, )
+
+            cursor = connection.cursor(dictionary=True)
+
+            cursor.execute(query, record)
+
+            result_list = cursor.fetchall()
+
+            cursor.close()
+            connection.close()
+
+        except Error as e:
+            print(e)
+            cursor.close()
+            connection.close()
+            return {'error' : str(e)}, 500
+
+        i = 0
+        for row in result_list :
+            result_list[i]['date'] = row['date'].isoformat()
+            i = i + 1            
+
+
+        return {'result' : 'success',
+                'items' : result_list,
+                'count' : len(result_list)}
 
 
 
